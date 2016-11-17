@@ -1,11 +1,13 @@
 var fs = require('fs');
 var path = require('path');
 
-var csslib = require('./lib/css');
-var jslib = require('./lib/js');
-var htmllib = require('./lib/html');
+var builder = require('builder');
 
 module.exports = build;
+
+if(require.main === module) {
+    main();
+}
 
 /**
  * 根据构建配置文件构建项目
@@ -14,22 +16,41 @@ module.exports = build;
  */
 function build(configfile) {
 	var config = check(configfile);
+    if(!Array.isArray(config.build)) {
+        return;
+    }
+    var tasks = config.build;
+    var task_index = 0, task_count = tasks.length;
 	process.chdir(path.dirname(configfile));
-	// 可能需要对 configfile 做一些检查
-	// configfile 也有可能是 String, Object, Stream
-	// 构建顺序 css -> js -> html
-	// 如果某一个没有就进行下一个
-	csslib.build(config.css).then(function(result){
-		if(result) {
-			return jslib.build(config.js);
-		}
-		return result;
-	}).then(function(result){
-		if(result) {
-			return htmllib.build(config.html);
-		}
-		return result;
-	});
+    run_tasks();
+    function run_tasks() {
+        if(task_index >= task_count) { return; }
+        var task = tasks[task_index];
+        console.log("run build process: " + (task.name ? task.name : task_index));
+        builder.execute(task).then(run_tasks, function(error){
+            console.log(error);
+        });
+    }
+}
+
+function main() {
+    var cfgfile = process.argv[2] || './build.json';
+    var stat;
+    try {
+        cfgfile = path.resolve(cfgfile);
+        stat = fs.lstatSync(cfgfile);
+        if(stat.isFile()) {
+            build(cfgfile);
+        } else {
+            printusage();
+        }
+    } catch(e) {
+        printusage();
+    }
+}
+
+function printusage() {
+    console.error("Usage: %s [cfgfile]", __filename);
 }
 
 // 检查 configfile 并且返回格式正确的配置对象
