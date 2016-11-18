@@ -1,7 +1,9 @@
 var fs = require('fs');
 var path = require('path');
+var colors = require('colors');
 
 var builder = require('builder');
+var utils = require('./utils');
 
 module.exports = build;
 
@@ -16,20 +18,35 @@ if(require.main === module) {
  */
 function build(configfile) {
 	var config = check(configfile);
-    if(!Array.isArray(config.build)) {
-        return;
+	var tasks = config.tasks;
+    if(!Array.isArray(tasks)) {
+		if(tasks && tasks.hasOwnProperty('input')) {
+			tasks = [tasks];
+		} else {
+			console.log("no task found, exit.");
+			return;
+		}
     }
-    var tasks = config.build;
     var task_index = 0, task_count = tasks.length;
 	process.chdir(path.dirname(configfile));
     run_tasks();
     function run_tasks() {
         if(task_index >= task_count) { return; }
         var task = tasks[task_index];
-        console.log("run build process: " + (task.name ? task.name : task_index));
-        builder.execute(task).then(run_tasks, function(error){
-            console.log(error);
-        });
+		var task_start = Date.now();
+		var continue_run = false;
+        console.log("run task: " + (task.name ? task.name : '[' + task_index + ']'));
+        builder.execute(task).then(function(){
+			console.log("          done!".green);
+			continue_run = true;
+		}, function(error){
+            console.log("          fail:".red);
+			console.log(error);
+        }).finally(function(){
+			var task_end = Date.now();
+			console.log("time: " + utils.readable_time(task_end - task_start));
+			if(continue_run) { run_tasks(); }
+		});
     }
 }
 
