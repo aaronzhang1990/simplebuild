@@ -3,6 +3,7 @@ var fs = require('fs');
 
 exports.resolve_path = resolve_path;
 exports.eachfile = eachfile;
+exports.readfile = readfile;
 exports.writefile = writefile;
 exports.md5 = md5;
 exports.filemd5 = filemd5;
@@ -30,6 +31,10 @@ function eachfile(input, callback) {
 		var content = fs.readFileSync(f, 'utf-8');
 		callback(content);
 	});
+}
+
+function readfile(input) {
+    return fs.readFileSync(input, 'utf-8');
 }
 
 function writefile(file, content) {
