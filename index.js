@@ -2,13 +2,50 @@ var fs = require('fs');
 var path = require('path');
 var colors = require('colors');
 
-var builder = require('builder');
 var utils = require('./utils');
 
 module.exports = build;
 
 if(require.main === module) {
     main();
+}
+
+
+// easy_pack server [cfgfile]
+// easy_pack build [cfgfile]
+function main() {
+    var cmd = process.argv[2];
+    var cfgfile = process.argv[3] || './build.json';
+    var stat;
+    try {
+        cfgfile = path.resolve(cfgfile);
+        stat = fs.lstatSync(cfgfile);
+        if(stat.isDirectory()) {
+            cfgfile = path.join(cfgfile, "build.json");
+        }
+        stat = fs.lstatSync(cfgfile);
+        if(!stat.isFile()) {
+            throw new Error("");
+        }
+    } catch(e) {
+        console.error("找不到 " + cfgfile);
+        return;
+    }
+    if(cmd === "server") {
+        start_server(cfgfile);
+    } else if(cmd === "build") {
+        build(cfgfile);
+    } else {
+        printusage();
+    }
+    
+}
+
+function start_server(configfile) {
+    var config = check(configfile);
+    var server = require('./server');
+	process.chdir(path.dirname(configfile));
+    server.start(config);
 }
 
 /**
@@ -27,6 +64,7 @@ function build(configfile) {
 			return;
 		}
     }
+    var builder = require('./builder');
     var task_index = 0, task_count = tasks.length;
 	process.chdir(path.dirname(configfile));
     run_tasks();
@@ -36,7 +74,7 @@ function build(configfile) {
 		var task_start = Date.now();
 		var continue_run = false;
         console.log("run task: " + (task.name ? task.name : '[' + task_index + ']'));
-        builder.execute(task).then(function(){
+        builder.execute(task, config).then(function(){
 			console.log("          done!".green);
 			continue_run = true;
 		}, function(error){
@@ -50,24 +88,12 @@ function build(configfile) {
     }
 }
 
-function main() {
-    var cfgfile = process.argv[2] || './build.json';
-    var stat;
-    try {
-        cfgfile = path.resolve(cfgfile);
-        stat = fs.lstatSync(cfgfile);
-        if(stat.isFile()) {
-            build(cfgfile);
-        } else {
-            printusage();
-        }
-    } catch(e) {
-        printusage();
-    }
-}
 
 function printusage() {
-    console.error("Usage: %s [cfgfile]", __filename);
+    console.error("Usage: %s [command] [cfgfile]", __filename);
+    console.error("commands:");
+    console.error("    build     打包压缩");
+    console.error("    server    运行开发服务器");
 }
 
 // 检查 configfile 并且返回格式正确的配置对象

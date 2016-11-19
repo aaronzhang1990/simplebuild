@@ -1,4 +1,10 @@
 {
+    "css_url_prefix": "/static/css",
+    "css_dev_root": "./src/css",
+    "css_dist_root": "./static/dist/css",
+    "js_url_prefix": "/static/js",
+    "js_dev_root": "./src/js",
+    "js_dist_root": "./static/dist/js",
 	// input 源文件，可以是单个文件路径，也可以是多个文件，暂不支持通配符
 	// output 输出文件，可以简单的理解为合并源文件
 	// output_minify 在合并后的源文件基础上压缩，这意味着如果指定了 output_minify，则 output 不能为空
@@ -6,7 +12,7 @@
 
 	// 当启动开发服务器时，访问 route 得到的是 output 所指向的结果
 	// 当运行 npm run build 时，将生成 output_minify 所指向的结果
-	"build": [{
+	"tasks": [{
 		// 这里说明了如何合并使用的多个库文件，由于库文件一般被压缩过，所以这里不需要指定 output_minify
 		"input": ["src/libs/jquery.min.js", "src/libs/angular.min.js", "src/libs/bootstrap/js/bootstrap.min.js"],
 		"output": "src/js/libs.min.js",
