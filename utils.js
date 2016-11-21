@@ -1,6 +1,8 @@
 var path = require('path');
 var fs = require('fs');
 
+var json = require('comment-json');
+
 exports.resolve_path = resolve_path;
 exports.eachfile = eachfile;
 exports.readfile = readfile;
@@ -11,6 +13,7 @@ exports.config_error = config_error;
 exports.check_conflict = check_conflict;
 exports.invalid_output_error = invalid_output_error;
 exports.readable_time = readable_time;
+exports.load_config = load_config;
 
 
 function resolve_path(input) {
@@ -101,4 +104,10 @@ function readable_time(time) {
 		parts.push(ms + 'ms');
 	}
 	return parts.join('');
+}
+
+
+function load_config(cfgfile) {
+    var content = readfile(cfgfile);
+    return json.parse(content, null, true);
 }
