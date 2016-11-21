@@ -1,6 +1,8 @@
 var fs = require('fs');
 var path = require('path');
+var assert = require('assert');
 var colors = require('colors');
+var debug = require('debug')('build:main');
 
 var utils = require('./utils');
 
@@ -45,7 +47,8 @@ function start_server(configfile) {
     var config = check(configfile);
     var server = require('./server');
 	process.chdir(path.dirname(configfile));
-    server.start(config);
+	debug('use build file: ' + configfile);
+    server.start(configfile);
 }
 
 /**

@@ -4,24 +4,20 @@ var fs = require('fs');
 var express = require('express');
 var chokidar = require('chokidar');
 var Mock = require('mockjs');
+var debug = require('debug')('build:router')
 var router = express.Router();
 
 var utils = require('./utils');
 var watcher = start_watcher();
-var configfile;
+var first_call_watch = false;;
 
 
 module.exports = router;
 
 // 为了让程序简单点，不监听 cfgfile 发生的变化
 // 这意味着，如果 cfgfile 发生了变化，必须重启开发服务器
-router.watch = function(cfgfile, mode){
-    if(configfile) {
-        console.error("can't call watch() twice, ignore ...");
-        return;
-    }
-    configfile = cfgfile;
-    var config = utils.load_config(cfgfile);
+router.watch = function(config, mode){
+	debug("start watch " + config.configfile + "on " + mode + " mode");
     // 本地静态文件
     if(mode === "production") {
         router.use(config.css_url_prefix, express.static(config.css_dist_root));
@@ -36,7 +32,7 @@ router.watch = function(cfgfile, mode){
         add_route(task);
     });
     // ajax 请求映射请求
-    router.use(ajax2local(path.dirname(cfgfile)));
+    router.use(ajax2local(path.dirname(config.configfile)));
 };
 
 function start_watcher() {
@@ -84,6 +80,7 @@ function make_response(resp, file) {
 function add_route(task) {
     var output_cache;
     var last_update_time = -1;
+	debug('add route for ' + task.route);
     watch_file_change(task.input, function(){});
     // 第一次请求时，手动触发 on_file_change 获得 output 并缓存
     // 文件发生变更时，更新缓存

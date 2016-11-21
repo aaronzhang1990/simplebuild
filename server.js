@@ -1,11 +1,13 @@
 var express = require('express');
 var path = require('path');
+var http = require('http');
 var fs = require('fs');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
 var app = express();
+var utils = require('./utils');
 var router = require('./router');
 
 app.use(logger('dev'));
@@ -33,10 +35,13 @@ app.use(function(err, req, res, next) {
 
 module.exports = app;
 module.exports.start = function(cfgfile){
+	var config, server_options;
     process.chdir(path.dirname(cfgfile));
-    router.watch(cfgfile, app.get('env'));
-    // 启动 listen
+	config = utils.load_config(cfgfile);
+	config.configfile = cfgfile;
+    router.watch(config, app.get('env'));
+	server_options = config.server || {host: '127.0.0.1', port: 6666};
+	http.createServer(app).listen(server_options.port, server_options.host);
+	console.log("server started at: http://%s:%d", server_options.host, server_options.port);
 };
-
-
 
