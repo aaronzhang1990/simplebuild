@@ -34,14 +34,13 @@ app.use(function(err, req, res, next) {
 });
 
 module.exports = app;
-module.exports.start = function(cfgfile){
-	var config, server_options;
-    process.chdir(path.dirname(cfgfile));
-	config = utils.load_config(cfgfile);
-	config.configfile = cfgfile;
+module.exports.start = function(config){
+	var server_options, host, port;
     router.watch(config, app.get('env'));
-	server_options = config.server || {host: '127.0.0.1', port: 6666};
-	http.createServer(app).listen(server_options.port, server_options.host);
-	console.log("server started at: http://%s:%d", server_options.host, server_options.port);
+	server_options = config.server || {};
+	host = server_options.host || '127.0.0.1';
+	port = server_options.port || 8080;
+	http.createServer(app).listen(port, host);
+	console.log("server started at: http://%s:%d", host, port);
 };
 

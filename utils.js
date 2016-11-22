@@ -3,6 +3,7 @@ var fs = require('fs');
 var crypto = require('crypto');
 
 var json = require('comment-json');
+var Mock = require('mockjs');
 
 exports.resolve_path = resolve_path;
 exports.eachfile = eachfile;
@@ -15,6 +16,7 @@ exports.check_conflict = check_conflict;
 exports.invalid_output_error = invalid_output_error;
 exports.readable_time = readable_time;
 exports.load_config = load_config;
+exports.make_response = make_response;
 
 
 function resolve_path(input) {
@@ -111,4 +113,10 @@ function readable_time(time) {
 function load_config(cfgfile) {
     var content = readfile(cfgfile);
     return json.parse(content, null, true);
+}
+
+
+function make_response(resp, file) {
+    var content = readfile(file);
+    resp.json(Mock.mock(json.parse(content)));
 }

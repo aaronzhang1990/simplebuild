@@ -3,8 +3,7 @@ var fs = require('fs');
 
 var express = require('express');
 var chokidar = require('chokidar');
-var Mock = require('mockjs');
-var debug = require('debug')('build:router')
+var debug = require('debug')('sb:router')
 var router = express.Router();
 
 var utils = require('./utils');
@@ -17,7 +16,7 @@ module.exports = router;
 // 为了让程序简单点，不监听 cfgfile 发生的变化
 // 这意味着，如果 cfgfile 发生了变化，必须重启开发服务器
 router.watch = function(config, mode){
-	debug("start watch " + config.configfile + "on " + mode + " mode");
+	debug("start watch " + config.configfile + " on " + mode + " mode");
     // 本地静态文件
     if(mode === "production") {
         router.use(config.css_url_prefix, express.static(config.css_dist_root));
@@ -53,19 +52,14 @@ function ajax2local(root) {
         last_slash = dir.lastIndexOf('/');
         file = dir.substring(0, last_slash) + '/' + req.method.toLowerCase() + '-' + dir.substring(last_slash + 1) + '.json';
         if(fs.existsSync(file)) {
-            return make_response(resp, file);
+            return utils.make_response(resp, file);
         }
         file = dir + '.json';
         if(fs.existsSync(file)) {
-            return make_response(resp, file);
+            return utils.make_response(resp, file);
         }
         next();
     };
-}
-
-function make_response(resp, file) {
-    var content = utils.readfile(file);
-    resp.json(Mock.mock(JSON.parse(content)));
 }
 
 

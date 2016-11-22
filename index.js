@@ -2,26 +2,33 @@ var fs = require('fs');
 var path = require('path');
 var assert = require('assert');
 var colors = require('colors');
-var debug = require('debug')('build:main');
+var debug = require('debug')('sb:main');
 
 var utils = require('./utils');
 
-module.exports = build;
+module.exports = main;
 
 if(require.main === module) {
     main();
 }
 
 
-// easy_pack server [cfgfile]
-// easy_pack build [cfgfile]
+// sb server [cfgfile]
+// sb build [cfgfile]
+// sb gen
 function main() {
     var cmd = process.argv[2];
-    var cfgfile = process.argv[3] || './build.json';
-    var stat;
+    var cfgfile = process.argv[3];
+	if(cmd === "gen") {
+		if(!cfgfile) {
+			generate();
+		}
+		return;
+	}
+	cfgfile = cfgfile || './build.json';
     try {
         cfgfile = path.resolve(cfgfile);
-        stat = fs.lstatSync(cfgfile);
+        var stat = fs.lstatSync(cfgfile);
         if(stat.isDirectory()) {
             cfgfile = path.join(cfgfile, "build.json");
         }
@@ -40,24 +47,28 @@ function main() {
     } else {
         printusage();
     }
-    
 }
 
+
+/**
+ * 启动开发服务器
+ */
 function start_server(configfile) {
-    var config = check(configfile);
-    var server = require('./server');
-	process.chdir(path.dirname(configfile));
+	var config;
 	debug('use build file: ' + configfile);
-    server.start(configfile);
+	process.chdir(path.dirname(configfile));
+    config = utils.load_config(configfile);
+	config.configfile = configfile;
+    require('./server').start(config);
 }
 
 /**
- * 根据构建配置文件构建项目
+ * 打包压缩
  * @param configfile {String} 配置文件
  * @return Promise 返回构建的 Promise
  */
 function build(configfile) {
-	var config = check(configfile);
+	var config = utils.load_config(configfile);
 	var tasks = config.tasks;
     if(!Array.isArray(tasks)) {
 		if(tasks && tasks.hasOwnProperty('input')) {
@@ -97,23 +108,14 @@ function printusage() {
     console.error("commands:");
     console.error("    build     打包压缩");
     console.error("    server    运行开发服务器");
+	console.error("    gen       生成 build.json");
+	console.error();
+	console.error("cfgfile:      默认为 ./build.json");
 }
 
-// 检查 configfile 并且返回格式正确的配置对象
-function check(configfile) {
-	var content, config;
-	if(typeof configfile !== "string") {
-		throw new Error(configfile + " is not file path");
-	}
-	var stat = fs.lstatSync(configfile);
-	assert.ok(stat.isFile(), "file \"" + configfile + "\" does't exists!");
-	try {
-		content = fs.readFileSync(configfile, 'utf-8');
-		config = json.parse(content, null, true);
-	} catch(e) {
-		if(e.code === "ENOENT") {
-			//
-		}
-	}
-	return config;
+function generate(){
+	var cwd = process.cwd();
+	var from = path.join(__dirname, "build.sample.json");
+	var to = path.join(cwd, "build.json");
+	fs.createReadStream(from).pipe(fs.createWriteStream(to));
 }
