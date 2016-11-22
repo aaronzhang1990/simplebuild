@@ -35,7 +35,12 @@ router.watch = function(config, mode){
 };
 
 function start_watcher() {
-    var watcher = chokidar.watch([]);
+	var options = {};
+	// 我在 ubuntu 16.04 下面需要开启这个标记才能正常工作
+	if(process.platform === "linux") {
+		options.usePolling = true;
+	}
+    var watcher = chokidar.watch([], options);
     watcher.on('change', trigger_file_change);
     return watcher;
 }
@@ -66,6 +71,7 @@ function ajax2local(root) {
 function add_route(task) {
     var output_cache;
     var last_update_time = 0;
+	task.input = utils.resolve_path(task.input);
 	debug('add route for ' + task.route);
     watch_file_change(task.input, function(file){
 		update_task_cache(task, file).then(function(result){
@@ -109,22 +115,17 @@ function update_task_cache(task, file) {
 var watch_stack = [];
 var watched_files = {};
 function watch_file_change(input, callback) {
-	if(Array.isArray(input)) {
-		input.forEach(function(f){
-			if(!watched_files.hasOwnProperty(f)) {
-				watcher.add(f);
-				watched_files[f] = true;
-			}
-		});
-	} else {
-		if(!watched_files.hasOwnProperty(input)) {
-			watcher.add(input);
-			watched_files[input] = true;
+	var files = Array.isArray(input) ? input : [input];
+	files.forEach(function(file){
+		if(!watched_files.hasOwnProperty(file)) {
+			watcher.add(file);
+			watched_files[file] = true;
 		}
-	}
+	});
 	watch_stack.push([input, callback]);
 }
 function trigger_file_change(file) {
+	debug("detected file changed: " + file);
 	watch_stack.forEach(function(arr){
 		var input = arr[0], fn = arr[1];
 		var find = false;

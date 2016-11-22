@@ -21,12 +21,14 @@ exports.make_response = make_response;
 
 function resolve_path(input) {
 	if(!input) { return input; }
-	if(!Array.isArray(input)) {
-		input = [input];
+	if(Array.isArray(input)) {
+		return input.map(function(p){
+			return path.resolve(p);
+		});
+	} else {
+		return path.resolve(input);
 	}
-	return input.map(function(p){
-		return path.resolve(p);
-	});
+
 }
 
 function eachfile(input, callback) {
