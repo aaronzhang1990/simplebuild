@@ -1,5 +1,6 @@
 var path = require('path');
 var fs = require('fs');
+var crypto = require('crypto');
 
 var json = require('comment-json');
 
@@ -32,7 +33,7 @@ function eachfile(input, callback) {
 	}
 	input.forEach(function(f){
 		var content = fs.readFileSync(f, 'utf-8');
-		callback(content);
+		callback(content, f);
 	});
 }
 

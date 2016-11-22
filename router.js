@@ -37,18 +37,10 @@ router.watch = function(config, mode){
 
 function start_watcher() {
     var watcher = chokidar.watch([]);
-    watcher.on('change', update_cache);
+    watcher.on('change', trigger_file_change);
     return watcher;
 }
 
-function update_cache(path) {
-    if(path === configfile) {}
-    // 如果是 cfgfile 发生变化，重新读取 cfgfile
-    // 如果读取失败，比如因为格式问题，忽略掉
-    // 如果读取成功，计算与之前的差异
-    //
-    // 如果是某个 input 重新生成 output
-}
 
 function ajax2local(root) {
     root = path.resolve(root);
@@ -79,12 +71,76 @@ function make_response(resp, file) {
 
 function add_route(task) {
     var output_cache;
-    var last_update_time = -1;
+    var last_update_time = 0;
 	debug('add route for ' + task.route);
-    watch_file_change(task.input, function(){});
+    watch_file_change(task.input, function(file){
+		update_task_cache(task, file).then(function(result){
+			output_cache = result.code;
+			last_update_time = Date.now();
+		});
+	});
     // 第一次请求时，手动触发 on_file_change 获得 output 并缓存
     // 文件发生变更时，更新缓存
-    router.get(task.route, function(req, resp){});
+    router.get(task.route, function(req, resp){
+		var time = req.get('if-modified-since') || -1;
+		var type = path.extname(task.output || task.output_minify);
+		// 说明：如果浏览器端禁用了缓存，将看不到缓存的效果
+		if(last_update_time > time) {
+			resp.set('Last-Modified', new Date(last_update_time));
+			resp.type(type);
+			if(output_cache) {
+				resp.end(output_cache);
+			} else {
+				update_task_cache(task).then(function(result){
+					output_cache = result.code;
+					last_update_time = Date.now();
+					resp.end(result.code);
+				});
+			}
+		} else {
+			resp.status(304).end();
+		}
+	});
 }
 
-function watch_file_change(input, callback) {}
+function update_task_cache(task, file) {
+	var type = path.extname(task.output || task.output_minify);
+	var lib = require('./lib/' + type.substring(1));
+	if(!file) {
+		file = Array.isArray(task.input) ? task.input[0] : task.input;
+	}
+	return lib.on_file_change({task: task, file: file});
+}
+
+var watch_stack = [];
+var watched_files = {};
+function watch_file_change(input, callback) {
+	if(Array.isArray(input)) {
+		input.forEach(function(f){
+			if(!watched_files.hasOwnProperty(f)) {
+				watcher.add(f);
+				watched_files[f] = true;
+			}
+		});
+	} else {
+		if(!watched_files.hasOwnProperty(input)) {
+			watcher.add(input);
+			watched_files[input] = true;
+		}
+	}
+	watch_stack.push([input, callback]);
+}
+function trigger_file_change(file) {
+	watch_stack.forEach(function(arr){
+		var input = arr[0], fn = arr[1];
+		var find = false;
+		if(Array.isArray(input)) {
+			find = input.indexOf(file) === -1;
+		} else {
+			find = input === file;
+		}
+		if(find) {
+			fn(file);
+		}
+	});
+}
