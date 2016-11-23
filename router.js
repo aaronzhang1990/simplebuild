@@ -77,6 +77,9 @@ function add_route(task) {
 		update_task_cache(task, file).then(function(result){
 			output_cache = result.code;
 			last_update_time = Date.now();
+			debug("cache updated");
+		}).catch(function(err){
+			console.error(err);
 		});
 	});
     // 第一次请求时，手动触发 on_file_change 获得 output 并缓存
@@ -95,6 +98,8 @@ function add_route(task) {
 					output_cache = result.code;
 					last_update_time = Date.now();
 					resp.end(result.code);
+				}).catch(function(err){
+					throw err;
 				});
 			}
 		} else {
@@ -130,7 +135,7 @@ function trigger_file_change(file) {
 		var input = arr[0], fn = arr[1];
 		var find = false;
 		if(Array.isArray(input)) {
-			find = input.indexOf(file) === -1;
+			find = input.indexOf(file) > -1;
 		} else {
 			find = input === file;
 		}
