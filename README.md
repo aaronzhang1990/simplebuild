@@ -33,7 +33,7 @@ cfgfile:      默认为 ./build.json
 sb 默认读取当前目录的 build.json 来完成打包压缩及动态生成代码，为了尽可能简单，build.json 只需要很少的配置即可。
 
 而且为了方便，build.json 允许使用 js 注释为每个选项批注说明。下面就是一个例子：
-```json
+```js
 {
     // 在服务器上访问 css 时 url 前缀
     "css_url_prefix": "/static/css",
