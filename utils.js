@@ -2,6 +2,7 @@ var path = require('path');
 var fs = require('fs');
 var crypto = require('crypto');
 
+var mkdirp = require('mkdirp');
 var json = require('comment-json');
 var Mock = require('mockjs');
 
@@ -12,11 +13,14 @@ exports.writefile = writefile;
 exports.md5 = md5;
 exports.filemd5 = filemd5;
 exports.config_error = config_error;
+exports.input_error = input_error;
 exports.check_conflict = check_conflict;
 exports.invalid_output_error = invalid_output_error;
 exports.readable_time = readable_time;
 exports.load_config = load_config;
 exports.make_response = make_response;
+exports.check_task = check_task;
+exports.isfile = isfile;
 
 
 function resolve_path(input) {
@@ -46,6 +50,9 @@ function readfile(input) {
 }
 
 function writefile(file, content) {
+	if(!fs.existsSync(file)) {
+		mkdirp.sync(path.dirname(file));
+	}
 	var oldmd5 = filemd5(file);
 	var newmd5 = md5(content);
 	// 如果文件已经存在，并且将要写入的内容和现有内容一致
@@ -121,4 +128,44 @@ function load_config(cfgfile) {
 function make_response(resp, file) {
     var content = readfile(file);
     resp.json(Mock.mock(json.parse(content)));
+}
+
+function input_error(file) {
+	return Promise.reject(new Error("task config error, can't find file: " + file));
+}
+
+function isfile(file) {
+	try {
+		var stat = fs.lstatSync(file);
+		return stat.isFile();
+	} catch(e) {
+		return false;
+	}
+}
+
+
+/**
+ * 检查任务对象是否有效，规则：
+ * 1. input 指定的文件必须存在
+ * 2. output 不能是 input 中的某一项
+ */
+function check_task(task) {
+	var input = resolve_path(task.input);
+	var output = resolve_path(task.output);
+	var error;
+	if(!Array.isArray(input)) {
+		input = [input];
+	}
+	input.forEach(function(f){
+		if(!isfile(f)) {
+			error = input_error(f);
+			return false;
+		}
+	});
+	if(error) { return error; }
+    // 如果 output 是 input 中的一个文件
+    if(check_conflict(input, output)) {
+        return invalid_output_error();
+    }
+	return true;
 }

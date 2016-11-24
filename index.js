@@ -87,18 +87,16 @@ function build(configfile) {
         var task = tasks[task_index];
 		var task_start = Date.now();
 		var continue_run = false;
-        console.log("run task: " + (task.name ? task.name : '[' + task_index + ']'));
+        process.stdout.write("run task: " + (task.name ? task.name : '[' + task_index + ']'));
         builder.execute(task, config).then(function(){
-			console.log("          done!".green);
-			continue_run = true;
+			process.stdout.write(("    done! " + (Date.now() - task_start) + "ms\n").green);
+			task_index++;
+			run_tasks();
 		}, function(error){
-            console.log("          fail:".red);
+			process.stdout.write(("    done! " + (Date.now() - task_start) + "ms\n").red);
 			console.log(error);
-        }).finally(function(){
-			var task_end = Date.now();
-			console.log("time: " + utils.readable_time(task_end - task_start));
-			if(continue_run) { run_tasks(); }
-		});
+			console.log(error.stack);
+        });
     }
 }
 

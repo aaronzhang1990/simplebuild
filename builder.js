@@ -12,11 +12,13 @@ exports.execute = execute;
  * @param task.output_minify
  */
 function execute(task, options) {
-    var type = path.extname(task.output), m;
+    var type = path.extname(task.output || task.output_minify), m;
     try {
         m = require('./lib/' + type.substring(1));
         return m.execute(task, options);
     } catch(e) {
+		console.error(e);
+		console.log(e.stack);
         return Promise.reject("unrecognize output type -> " + type);
     }
 }
