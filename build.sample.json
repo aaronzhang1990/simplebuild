@@ -1,17 +1,21 @@
 {
+	// 在服务器上访问 css 时 url 前缀
     "css_url_prefix": "/static/css",
+    // 本地开发环境 css 根目录
     "css_dev_root": "./src/css",
+	// 本地仿生产环境根目录
     "css_dist_root": "./static/dist/css",
+	// 服务器上访问 js 时 url 前缀
     "js_url_prefix": "/static/js",
+	// 本地开发环境 js 根目录
     "js_dev_root": "./src/js",
+	// 本地仿生产环境根目录
     "js_dist_root": "./static/dist/js",
 	// input 源文件，可以是单个文件路径，也可以是多个文件，暂不支持通配符
 	// output 输出文件，可以简单的理解为合并源文件
-	// output_minify 在合并后的源文件基础上压缩，这意味着如果指定了 output_minify，则 output 不能为空
-	// route url 绝对路径。启动开发服务器后，当访问该路径时返回 output 的内容
-
-	// 当启动开发服务器时，访问 route 得到的是 output 所指向的结果
-	// 当运行 npm run build 时，将生成 output_minify 所指向的结果
+	// output_minify 在合并后的源文件基础上压缩
+	// dev_route 开发环境访问资源的 url 绝对路径
+	// dist_route 仿生产环境访问资源的 url 绝对路径
 	"tasks": [{
 		// 这里说明了如何合并使用的多个库文件，由于库文件一般被压缩过，所以这里不需要指定 output_minify
 		"input": ["src/libs/jquery.min.js", "src/libs/angular.min.js", "src/libs/bootstrap/js/bootstrap.min.js"],
@@ -40,20 +44,7 @@
 		"input": ["src/css/1.css", "src/css/3.css"],
 		"output": "src/css/all.css",
 		"output_minify": "dist/css/all.min.css",
-		"route": "/static/css/all.css",
-		// 注意：当 rebase 为 true 时，所有的 url 都将被替换为绝对路径！！！
-		// 这个选项仅仅对 css 文件生效
-		"rebase": false
-	}, {
-		// 合并模板文件
-		"input": ["src/button.html", "src/modal.html", "src/form.html"],
-		// 模板的输出文件可以是 html，也可以是 js
-		"output": "src/templates.html",
-		// "output": "src/templates.js"
-	}, {
-		// 最终的版本，合并 库、app、模板 三者的代码
-		"input": ["src/js/libs.js", "src/js/app.js", "src/js/templates.js"],
-		"output": "dist/js/app.all.min.js"
+		"route": "/static/css/all.css"
 	}, {
 		// 注意：
 		// 压缩独立页面的时候，页面内所有的 link[min-href], script[min-src] 属性都将替换到 link[href], script[src] 并删除掉
@@ -71,12 +62,11 @@
 		// <script type="text/javascript" src="/static/js/all.bundle.js"></script>
 		// 将删除上面的 html 代码
 		"input": "index.html",
-		// html 可以不设置 output
 		"output_minify": "dist/index.html",
 		"route": "/"
 	}],
 	"server": {
 		"host": "127.0.0.1",
-		"port": 6666
+		"port": 8080
 	}
 }
