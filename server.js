@@ -5,6 +5,7 @@ var fs = require('fs');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var colors = require('colors');
 
 var app = express();
 var utils = require('./utils');
@@ -27,20 +28,27 @@ app.use(function(req, res, next) {
 
 app.use(function(err, req, res, next) {
     res.status(err.status || 500);
-    res.json({
-        message: err.message,
-        error: err
-    });
+    res.end([
+		'<h1 style="color:red;">Error: ',
+		err.message,
+		'</h1>',
+        err.stack.replace(/\n/g, '<br/>')
+	].join(''));
 });
 
 module.exports = app;
 module.exports.start = function(config){
 	var server_options, host, port;
-    router.watch(config, app.get('env'));
+	try {
+	    router.watch(config, app.get('env'));
+	} catch(e) {
+		console.log(e.message.red);
+		process.exit();
+	}
 	server_options = config.server || {};
 	host = server_options.host || '127.0.0.1';
 	port = server_options.port || 8080;
 	http.createServer(app).listen(port, host);
-	console.log("server started at: http://%s:%d", host, port);
+	console.log("server started at: http://%s:%d".green, host, port);
 };
 

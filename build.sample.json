@@ -14,56 +14,47 @@
 	// input 源文件，可以是单个文件路径，也可以是多个文件，暂不支持通配符
 	// output 输出文件，可以简单的理解为合并源文件
 	// output_minify 在合并后的源文件基础上压缩
-	// dev_route 开发环境访问资源的 url 绝对路径
-	// dist_route 仿生产环境访问资源的 url 绝对路径
+	// dev_route 开发环境访问资源的 url 绝对路径，一般是 output
+	// dist_route 仿生产环境访问资源的 url 绝对路径，一般是 output_minify
 	"tasks": [{
-		// 这里说明了如何合并使用的多个库文件，由于库文件一般被压缩过，所以这里不需要指定 output_minify
-		"input": ["src/libs/jquery.min.js", "src/libs/angular.min.js", "src/libs/bootstrap/js/bootstrap.min.js"],
-		"output": "src/js/libs.min.js",
-		"route": "/static/js/libs.min.js"
-	}, {
-		// 这里说明了使用 commonjs 方式写代码，output 将会使用 browserify 打包所有依赖的文件
+		// 通过指定 commonjs:true，output 将会打包所有 require 的文件
 		"input": "src/js/app.js",
 		"output": "src/js/app.bundle.js",
 		"output_minify": "dist/js/app.bundle.min.js",
-		"commonjs": true
+		"commonjs": true,
+		"dev_route": "/static/js/app.bundle.js",
+		"dist_route": "/static/jsapp.bundle.min.js"
 	}, {
-		// 这里说明了使用 es6 方式写代码，output 将会翻译为 es5 代码
+		// 通过指定 es6:true ，output 将会翻译为 es5 代码
+		// 由于 es6 翻译为 es5 的过程中，import 转变为 require
+		// 所以指定了 es:true, 也意味着 commonjs: true
 		"input": "src/js/app.js",
-		"output": "src/js/app.bundle.js",
-		"output_minify": "dist/js/app.bundle.min.js",
-		"es6": true
+		"output": "src/js/app-all.js",
+		"output_minify": "dist/js/app-all.min.js",
+		"es6": true,
+		"dev_route": "/static/js/app-all.js",
+		"dist_route": "/static/js/app_all.min.js"
 	}, {
-		// 也可以简单的合并源代码
+		// 简单的合并 js
 		"input": ["src/js/1.js", "src/js/2.js"],
 		"output": "src/js/app.js",
 		"output_minify": "dist/js/app.min.js",
-		"route": "/static/js/app.js"
+		"dev_route": "/static/js/app.js",
+		"dist_route": "/static/js/app.min.js"
 	}, {
 		// 简单的合并 css
 		"input": ["src/css/1.css", "src/css/3.css"],
 		"output": "src/css/all.css",
 		"output_minify": "dist/css/all.min.css",
-		"route": "/static/css/all.css"
+		"dev_route": "/static/css/all.css",
+		"dist_route": "/static/css/all.min.css"
 	}, {
-		// 注意：
 		// 压缩独立页面的时候，页面内所有的 link[min-href], script[min-src] 属性都将替换到 link[href], script[src] 并删除掉
 		// 如果 min-href, min-src 的值为空，将删除这个元素
-		// 比如，压缩下面的 HTML
-		// <link rel="stylesheet" type="text/css" href="/static/css/all.css" min-href="/static/css/all.min.css">
-		// <script type="text/javascript" src="/static/js/all.bundle.js" min-src="/static/js/all.bundle.min.js"></script>
-		// 将得到：
-		// <link rel="stylesheet" type="text/css" href="/static/css/all.min.css">
-		// <script type="text/javascript" src="/static/js/all.bundle.min.js"></script>
-		// 但是，压缩下面的 HTML
-		// <!-- 手动设置 min-href="" -->
-		// <link rel="stylesheet" type="text/css" href="/static/css/all.css" min-href="">
-		// <!-- 不设置 min-src -->
-		// <script type="text/javascript" src="/static/js/all.bundle.js"></script>
-		// 将删除上面的 html 代码
 		"input": "index.html",
 		"output_minify": "dist/index.html",
-		"route": "/"
+		"dev_route": "/",
+		"dist_route": "/"
 	}],
 	"server": {
 		"host": "127.0.0.1",

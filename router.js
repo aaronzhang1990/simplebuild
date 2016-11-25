@@ -26,9 +26,11 @@ router.watch = function(config, mode){
         router.use(config.js_url_prefix, express.static(config.js_dev_root));
     }
     // 动态更新的静态文件
+	var route_key = mode === "production" ? "dist_route" : "dev_route";
     config.tasks.forEach(function(task){
-        if(!task.route) { return; }
-        add_route(task);
+        if(task[route_key]) {
+	        add_route(task, mode);
+		}
     });
     // ajax 请求映射请求
     router.use(ajax2local(path.dirname(config.configfile)));
@@ -49,7 +51,7 @@ function start_watcher() {
 function ajax2local(root) {
     root = path.resolve(root);
     return function(req, resp, next){
-        var dir = 'ajax' + request.path, file, last_slash;
+        var dir = 'ajax' + req.path, file, last_slash;
         dir = path.join(root, dir.trim());
         if(dir.endsWith('/')) {
             dir = dir.substring(0, dir.length - 1);
@@ -67,12 +69,20 @@ function ajax2local(root) {
     };
 }
 
+function add_route(task, mode) {
+	if(mode === "production") {
+		debug("[" + mode + "] add route for: " + task.dist_route);
+		create_dist_route(task);
+	} else {
+		debug("[" + mode + "] add route for: " + task.dev_route);
+		create_dev_route(task);
+	}
+}
 
-function add_route(task) {
+function create_dev_route(task){
     var output_cache;
     var last_update_time = 0;
-	task.input = utils.resolve_path(task.input);
-	debug('add route for ' + task.route);
+	// 监听文件变化并打包
     watch_file_change(task.input, function(file){
 		update_task_cache(task, file).then(function(result){
 			output_cache = result.code;
@@ -84,7 +94,7 @@ function add_route(task) {
 	});
     // 第一次请求时，手动触发 on_file_change 获得 output 并缓存
     // 文件发生变更时，更新缓存
-    router.get(task.route, function(req, resp){
+	router.get(task.dev_route, function(req, resp) {
 		var time = req.get('if-modified-since') || -1;
 		var type = path.extname(task.output || task.output_minify);
 		// 说明：如果浏览器端禁用了缓存，将看不到缓存的效果
@@ -108,11 +118,21 @@ function add_route(task) {
 	});
 }
 
+function create_dist_route(task){
+	if(!utils.isfile(task.output_minify)) {
+		throw new Error("you start on production mode, please run \"sb build\" first");
+	}
+	router.get(task.dist_route, function(req, resp){
+		resp.sendFile(task.output_minify);
+	});
+}
+
+
 function update_task_cache(task, file) {
 	var type = path.extname(task.output || task.output_minify);
 	var lib = require('./lib/' + type.substring(1));
 	if(!file) {
-		file = Array.isArray(task.input) ? task.input[0] : task.input;
+		file = task.input[0];
 	}
 	return lib.on_file_change({task: task, file: file});
 }
@@ -120,8 +140,7 @@ function update_task_cache(task, file) {
 var watch_stack = [];
 var watched_files = {};
 function watch_file_change(input, callback) {
-	var files = Array.isArray(input) ? input : [input];
-	files.forEach(function(file){
+	input.forEach(function(file){
 		if(!watched_files.hasOwnProperty(file)) {
 			watcher.add(file);
 			watched_files[file] = true;
@@ -134,11 +153,7 @@ function trigger_file_change(file) {
 	watch_stack.forEach(function(arr){
 		var input = arr[0], fn = arr[1];
 		var find = false;
-		if(Array.isArray(input)) {
-			find = input.indexOf(file) > -1;
-		} else {
-			find = input === file;
-		}
+		find = input.indexOf(file) > -1;
 		if(find) {
 			fn(file);
 		}

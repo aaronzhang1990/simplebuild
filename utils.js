@@ -2,6 +2,7 @@ var path = require('path');
 var fs = require('fs');
 var crypto = require('crypto');
 
+var colors = require('colors');
 var mkdirp = require('mkdirp');
 var json = require('comment-json');
 var Mock = require('mockjs');
@@ -12,15 +13,11 @@ exports.readfile = readfile;
 exports.writefile = writefile;
 exports.md5 = md5;
 exports.filemd5 = filemd5;
-exports.config_error = config_error;
-exports.input_error = input_error;
-exports.check_conflict = check_conflict;
-exports.invalid_output_error = invalid_output_error;
 exports.readable_time = readable_time;
 exports.load_config = load_config;
 exports.make_response = make_response;
-exports.check_task = check_task;
 exports.isfile = isfile;
+exports.isdir = isdir;
 
 
 function resolve_path(input) {
@@ -39,9 +36,9 @@ function eachfile(input, callback) {
 	if(!Array.isArray(input)) {
 		input = [input];
 	}
-	input.forEach(function(f){
+	input.forEach(function(f, i){
 		var content = fs.readFileSync(f, 'utf-8');
-		callback(content, f);
+		callback(content, f, i);
 	});
 }
 
@@ -75,25 +72,6 @@ function filemd5(file) {
 	}
 }
 
-function config_error(field) {
-	return Promise.reject(new Error("config error for field \"" + field + '"'));
-}
-
-
-function check_conflict(input, output) {
-	var conflict = false;
-	input.forEach(function(f){
-		if(f === output) {
-			conflict = true;
-			return false;
-		}
-	});
-	return conflict;
-}
-
-function invalid_output_error() {
-	return Promise.reject("config for output can't be one of input");
-}
 
 function readable_time(time) {
 	var parts = [], ms, seconds, sec, minutes, min, hours;
@@ -121,17 +99,21 @@ function readable_time(time) {
 
 function load_config(cfgfile) {
     var content = readfile(cfgfile);
-    return json.parse(content, null, true);
+    var config = json.parse(content, null, true);
+	try {
+		check_config(config);
+		return config;
+	} catch(e) {
+		console.log(e.message.red);
+		console.log(e.stack.red);
+		process.exit();
+	}
 }
 
 
 function make_response(resp, file) {
     var content = readfile(file);
     resp.json(Mock.mock(json.parse(content)));
-}
-
-function input_error(file) {
-	return Promise.reject(new Error("task config error, can't find file: " + file));
 }
 
 function isfile(file) {
@@ -143,29 +125,65 @@ function isfile(file) {
 	}
 }
 
+function isdir(file) {
+	try {
+		var stat = fs.lstatSync(file);
+		return stat.isDirectory();
+	} catch(e) {
+		return false;
+	}
+}
+
+function check_config(config) {
+	var fields = ['css_url_prefix', 'js_url_prefix'];
+	fields.forEach(function(name){
+		if(!config[name]) {
+			throw new Error("config error: " + name + " not set");
+		}
+	});
+	fields = ['css_dist_root', 'js_dist_root', 'css_dev_root', 'js_dev_root'];
+	fields.forEach(function(name){
+		if(!config[name]) {
+			throw new Error("config error: " + name + " not set");
+		}
+		if(!isdir(config[name])) {
+			throw new Error(("warning: you set " + name + " = " + config[name] + ", but " + config[name] + " is not a directory!").yellow);
+		}
+	});
+	var tasks = config.tasks;
+	if(!Array.isArray(tasks)) {
+		tasks = [tasks];
+	}
+	tasks.forEach(check_task);
+	config.tasks = tasks;
+}
 
 /**
  * 检查任务对象是否有效，规则：
  * 1. input 指定的文件必须存在
- * 2. output 不能是 input 中的某一项
+ * 2. output 不能是 input 中的某一项，除非 input == output
  */
 function check_task(task) {
-	var input = resolve_path(task.input);
+	var input = task.input;
 	var output = resolve_path(task.output);
-	var error;
 	if(!Array.isArray(input)) {
 		input = [input];
 	}
+	input = resolve_path(input);
 	input.forEach(function(f){
 		if(!isfile(f)) {
-			error = input_error(f);
-			return false;
+			throw new Error("file does't exists: " + f + "\n" + JSON.stringify(task));
 		}
 	});
-	if(error) { return error; }
-    // 如果 output 是 input 中的一个文件
-    if(check_conflict(input, output)) {
-        return invalid_output_error();
-    }
-	return true;
+	if(output && input.indexOf(output) > -1) {
+		if(input.length > 1) {
+			throw new Error("invalid output, can't be one of input\n" + JSON.stringify(task, null, 4));
+		}
+	}
+	task.input = input;
+	if(task.route && !task.dev_route && !task.dist_route) {
+		task.dev_route = task.dist_route = task.route;
+	}
+	task.output = resolve_path(task.output);
+	task.output_minify = resolve_path(task.output_minify);
 }

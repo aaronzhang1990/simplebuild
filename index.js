@@ -70,14 +70,6 @@ function start_server(configfile) {
 function build(configfile) {
 	var config = utils.load_config(configfile);
 	var tasks = config.tasks;
-    if(!Array.isArray(tasks)) {
-		if(tasks && tasks.hasOwnProperty('input')) {
-			tasks = [tasks];
-		} else {
-			console.log("no task found, exit.");
-			return;
-		}
-    }
     var builder = require('./builder');
     var task_index = 0, task_count = tasks.length;
 	process.chdir(path.dirname(configfile));
