@@ -95,7 +95,7 @@ function build(configfile) {
 
 function printusage() {
     console.error("Usage: %s [command] [cfgfile]", __filename);
-    console.error("commands:");
+    console.error("command:");
     console.error("    build     打包压缩");
     console.error("    server    运行开发服务器");
 	console.error("    gen       生成 build.json");
