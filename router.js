@@ -21,16 +21,15 @@ router.watch = function(config, mode){
         router.use(config.css_url_prefix, express.static(config.css_dist_root));
         router.use(config.js_url_prefix, express.static(config.js_dist_root));
     } else {
+        // 动态更新的静态文件
+        config.tasks.forEach(function(task){
+            if(task.route) {
+                add_route(task);
+            }
+        });
         router.use(config.css_url_prefix, express.static(config.css_dev_root));
         router.use(config.js_url_prefix, express.static(config.js_dev_root));
     }
-    // 动态更新的静态文件
-	var route_key = mode === "production" ? "dist_route" : "dev_route";
-    config.tasks.forEach(function(task){
-        if(task[route_key]) {
-	        add_route(task, mode);
-		}
-    });
     // ajax 请求映射请求
     router.use(ajax2local(path.dirname(config.configfile)));
 };
@@ -68,17 +67,8 @@ function ajax2local(root) {
     };
 }
 
-function add_route(task, mode) {
-	if(mode === "production") {
-		debug("[" + mode + "] add route for: " + task.dist_route);
-		create_dist_route(task);
-	} else {
-		debug("[" + mode + "] add route for: " + task.dev_route);
-		create_dev_route(task);
-	}
-}
 
-function create_dev_route(task){
+function add_route(task){
     var output_cache;
     var last_update_time = 0;
 	// 监听文件变化并打包
@@ -93,7 +83,7 @@ function create_dev_route(task){
 	});
     // 第一次请求时，手动触发 on_file_change 获得 output 并缓存
     // 文件发生变更时，更新缓存
-	router.get(task.dev_route, function(req, resp) {
+	router.get(task.route, function(req, resp) {
 		var time = req.get('if-modified-since') || -1;
 		var type = path.extname(task.output || task.output_minify);
 		// 说明：如果浏览器端禁用了缓存，将看不到缓存的效果
@@ -116,16 +106,6 @@ function create_dev_route(task){
 		}
 	});
 }
-
-function create_dist_route(task){
-	if(!utils.isfile(task.output_minify)) {
-		throw new Error("you start on production mode, please run \"sb build\" first");
-	}
-	router.get(task.dist_route, function(req, resp){
-		resp.sendFile(task.output_minify);
-	});
-}
-
 
 function update_task_cache(task, file) {
 	var type = path.extname(task.output || task.output_minify);

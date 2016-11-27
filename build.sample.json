@@ -14,16 +14,15 @@
 	// input 源文件，可以是单个文件路径，也可以是多个文件，暂不支持通配符
 	// output 输出文件，可以简单的理解为合并源文件
 	// output_minify 在合并后的源文件基础上压缩
-	// dev_route 开发环境访问资源的 url 绝对路径，一般是 output
-	// dist_route 仿生产环境访问资源的 url 绝对路径，一般是 output_minify
+	// route 开发环境访问资源的 url 绝对路径，一般是 output
+    // 部署模式不需要单独配置 route
 	"tasks": [{
 		// 通过指定 commonjs:true，output 将会打包所有 require 的文件
 		"input": "src/js/app.js",
 		"output": "src/js/app.bundle.js",
 		"output_minify": "dist/js/app.bundle.min.js",
 		"commonjs": true,
-		"dev_route": "/static/js/app.bundle.js",
-		"dist_route": "/static/jsapp.bundle.min.js"
+		"route": "/static/js/app.bundle.js"
 	}, {
 		// 通过指定 es6:true ，output 将会翻译为 es5 代码
 		// 由于 es6 翻译为 es5 的过程中，import 转变为 require
@@ -32,29 +31,25 @@
 		"output": "src/js/app-all.js",
 		"output_minify": "dist/js/app-all.min.js",
 		"es6": true,
-		"dev_route": "/static/js/app-all.js",
-		"dist_route": "/static/js/app_all.min.js"
+		"route": "/static/js/app-all.js"
 	}, {
 		// 简单的合并 js
 		"input": ["src/js/1.js", "src/js/2.js"],
 		"output": "src/js/app.js",
 		"output_minify": "dist/js/app.min.js",
-		"dev_route": "/static/js/app.js",
-		"dist_route": "/static/js/app.min.js"
+		"route": "/static/js/app.js"
 	}, {
 		// 简单的合并 css
 		"input": ["src/css/1.css", "src/css/3.css"],
 		"output": "src/css/all.css",
 		"output_minify": "dist/css/all.min.css",
-		"dev_route": "/static/css/all.css",
-		"dist_route": "/static/css/all.min.css"
+		"route": "/static/css/all.css"
 	}, {
 		// 压缩独立页面的时候，页面内所有的 link[min-href], script[min-src] 属性都将替换到 link[href], script[src] 并删除掉
 		// 如果 min-href, min-src 的值为空，将删除这个元素
 		"input": "index.html",
 		"output_minify": "dist/index.html",
-		"dev_route": "/",
-		"dist_route": "/"
+		"route": "/"
 	}],
 	"server": {
 		"host": "127.0.0.1",

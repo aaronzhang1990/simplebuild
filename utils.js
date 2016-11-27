@@ -181,9 +181,6 @@ function check_task(task) {
 		}
 	}
 	task.input = input;
-	if(task.route && !task.dev_route && !task.dist_route) {
-		task.dev_route = task.dist_route = task.route;
-	}
 	task.output = resolve_path(task.output);
 	task.output_minify = resolve_path(task.output_minify);
 }
