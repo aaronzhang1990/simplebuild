@@ -113,7 +113,14 @@ function update_task_cache(task, file) {
 	if(!file) {
 		file = task.input[0];
 	}
-	return lib.on_file_change({task: task, file: file});
+	return lib.on_file_change({task: task, file: file}).then(function(result){
+        if(result.dependencies) {
+            // TODO: 
+            on_dependency_change(result.dependencies, task.dependencies);
+            task.dependencies = result.dependencies;
+        }
+        return result;
+    });
 }
 
 var watch_stack = [];
