@@ -8,7 +8,6 @@ var bodyParser = require('body-parser');
 var colors = require('colors');
 
 var app = express();
-var utils = require('./utils');
 var router = require('./router');
 
 app.use(logger('dev'));
@@ -40,9 +39,10 @@ module.exports = app;
 module.exports.start = function(config){
 	var server_options, host, port;
 	try {
-	    router.watch(config, app.get('env'));
+	    router.init(config, app.get('env'));
 	} catch(e) {
 		console.log(e.message.red);
+		console.log(e.stack.red);
 		process.exit();
 	}
 	server_options = config.server || {};
