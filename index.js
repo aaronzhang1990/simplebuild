@@ -17,8 +17,16 @@ if(require.main === module) {
 // sb build [cfgfile]
 // sb gen
 function main() {
-    var cmd = process.argv[2];
-    var cfgfile = process.argv[3];
+    var cmd = process.argv[2], mode, cfgfile, tmp;
+	mode = process.argv[3] || '';
+	cfgfile = process.argv[4] || '';
+	if(mode.indexOf('--') === 0) {
+		mode = mode.substring(2);
+	} else if(cfgfile.indexOf('--') === 0) {
+		tmp = mode;
+		mode = cfgfile.substring(2);
+		cfgfile = tmp;
+	}
 	if(cmd === "gen") {
 		if(!cfgfile) {
 			generate();
@@ -41,7 +49,7 @@ function main() {
         return;
     }
     if(cmd === "server") {
-        start_server(cfgfile);
+        start_server(cfgfile, mode);
     } else if(cmd === "build") {
         build(cfgfile);
     } else {
@@ -53,9 +61,13 @@ function main() {
 /**
  * 启动开发服务器
  */
-function start_server(configfile) {
+function start_server(configfile, mode) {
 	var config;
 	debug('use build file: ' + configfile);
+	if(mode !== "production" && mode !== "development") {
+		mode = "development";
+	}
+	process.env['NODE_ENV'] = mode;
 	process.chdir(path.dirname(configfile));
     config = utils.load_config(configfile);
 	config.configfile = configfile;
@@ -94,12 +106,14 @@ function build(configfile) {
 
 
 function printusage() {
-    console.error("Usage: %s [command] [cfgfile]", __filename);
+    console.error("Usage: sb [command] options [cfgfile]");
     console.error("command:");
     console.error("    build     打包压缩");
     console.error("    server    运行开发服务器");
 	console.error("    gen       生成 build.json");
-	console.error();
+	console.error("options:");
+	console.error("--production  启动生产模式");
+	console.error("--development 启动开发模式，默认");
 	console.error("cfgfile:      默认为 ./build.json");
 }
 

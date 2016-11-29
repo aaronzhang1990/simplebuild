@@ -37,9 +37,10 @@ app.use(function(err, req, res, next) {
 
 module.exports = app;
 module.exports.start = function(config){
-	var server_options, host, port;
+	var server_options, host, port, mode;
+	mode = app.get('env');
 	try {
-	    router.init(config, app.get('env'));
+	    router.init(config, mode);
 	} catch(e) {
 		console.log(e.message.red);
 		console.log(e.stack.red);
@@ -49,6 +50,6 @@ module.exports.start = function(config){
 	host = server_options.host || '127.0.0.1';
 	port = server_options.port || 8080;
 	http.createServer(app).listen(port, host);
-	console.log("server started at: http://%s:%d".green, host, port);
+	console.log("[%s] server started at: http://%s:%d".green, mode, host, port);
 };
 
