@@ -6,12 +6,47 @@ var debug = require('debug')('sb:router')
 var router = express.Router();
 
 var utils = require('./utils');
-var watch = require('./watcher');
+var config = require('./config_wrapper');
 
+init(process.env.NODE_ENV);
 
 module.exports = router;
 
-router.init = function(config, mode){
+function init(mode){
+    var url, localpath, stat;
+    // 动态缓存路由
+    if(mode === "development" && config.dynamic_assets) {
+		router.use(function(req, resp, next){
+			var assets = config.dynamic_assets;
+			var find = false;
+			assets.forEach(function(asset){
+				if(!find && asset.canRoute()) {
+					var ret = asset.onRequest(req, resp);
+					if(ret === false) {
+						find = true;
+						return false;
+					}
+				}
+			});
+			if(!find) {
+				next();
+			}
+		});
+    }
+    // 静态配置的路由
+    for(url in config.urlmaps) {
+        localpath = path.resolve(config.urlmaps[url]);
+		debug("prepare route `" + url + "` for localpath: " + localpath);
+        stat = fs.lstatSync(localpath);
+        if(stat.isFile()) {
+            router.get(url, createFileHandler(localpath));
+        } else if(stat.isDirectory()) {
+            router.use(url, express.static(localpath));
+        } else {
+            debug("stat 错误，忽略 " + url);
+        }
+    }
+    /**
     // 本地静态文件
     if(mode === "production") {
 		// 部署模式下仅仅代理 html 文件
@@ -33,48 +68,12 @@ router.init = function(config, mode){
     }
     // ajax 请求映射请求
     router.use(ajax2local(path.dirname(config.configfile)));
+    */
 };
 
-
-function ajax2local(root) {
-    root = path.resolve(root);
-    return function(req, resp, next){
-        var dir = 'ajax' + req.path, file, last_slash;
-        dir = path.join(root, dir.trim());
-        if(dir.endsWith('/')) {
-            dir = dir.substring(0, dir.length - 1);
-        }
-        last_slash = dir.lastIndexOf('/');
-        file = dir.substring(0, last_slash) + '/' + req.method.toLowerCase() + '-' + dir.substring(last_slash + 1) + '.json';
-        if(fs.existsSync(file)) {
-            return utils.make_response(resp, file);
-        }
-        file = dir + '.json';
-        if(fs.existsSync(file)) {
-            return utils.make_response(resp, file);
-        }
-        next();
+function createFileHandler(file) {
+    return function(req, resp){
+        resp.sendFile(file);
     };
 }
 
-
-function add_dev_route(task){
-	router.get(task.route, function(req, resp) {
-		var time = req.get('if-modified-since') || -1;
-		var type = path.extname(task.output || task.output_minify);
-		// 说明：如果浏览器端禁用了缓存，将看不到缓存的效果
-		if(task.last_cache_time > time) {
-			resp.set('Last-Modified', new Date(task.last_cache_time));
-			resp.type(type);
-			resp.end(task.output_cache);
-		} else {
-			resp.status(304).end();
-		}
-	});
-}
-
-function add_dist_route(task) {
-	router.get(task.route, function(req, resp){
-		resp.sendFile(task.output_minify);
-	});
-}

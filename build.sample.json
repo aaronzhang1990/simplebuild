@@ -1,58 +1,27 @@
 {
-	// 在服务器上访问 css 时 url 前缀
-    "css_url_prefix": "/static/css",
-    // 本地开发环境 css 根目录
-    "css_dev_root": "./src/css",
-	// 本地仿生产环境根目录
-    "css_dist_root": "./static/dist/css",
-	// 服务器上访问 js 时 url 前缀
-    "js_url_prefix": "/static/js",
-	// 本地开发环境 js 根目录
-    "js_dev_root": "./src/js",
-	// 本地仿生产环境根目录
-    "js_dist_root": "./static/dist/js",
-	// input 源文件，可以是单个文件路径，也可以是多个文件，暂不支持通配符
-	// output 输出文件，可以简单的理解为合并源文件
-	// output_minify 在合并后的源文件基础上压缩
-	// route 开发环境访问资源的 url 绝对路径，一般是 output
-    // 部署模式不需要单独配置 route
-	"tasks": [{
-		// 通过指定 commonjs:true，output 将会打包所有 require 的文件
-		"input": "src/js/app.js",
-		"output": "src/js/app.bundle.js",
-		"output_minify": "dist/js/app.bundle.min.js",
-		"commonjs": true,
-		"route": "/static/js/app.bundle.js"
-	}, {
-		// 通过指定 es6:true ，output 将会翻译为 es5 代码
-		// 由于 es6 翻译为 es5 的过程中，import 转变为 require
-		// 所以指定了 es:true, 也意味着 commonjs: true
-		"input": "src/js/app.js",
-		"output": "src/js/app-all.js",
-		"output_minify": "dist/js/app-all.min.js",
-		"es6": true,
-		"route": "/static/js/app-all.js"
-	}, {
-		// 简单的合并 js
-		"input": ["src/js/1.js", "src/js/2.js"],
-		"output": "src/js/app.js",
-		"output_minify": "dist/js/app.min.js",
-		"route": "/static/js/app.js"
-	}, {
-		// 简单的合并 css
-		"input": ["src/css/1.css", "src/css/3.css"],
-		"output": "src/css/all.css",
-		"output_minify": "dist/css/all.min.css",
-		"route": "/static/css/all.css"
-	}, {
-		// 压缩独立页面的时候，页面内所有的 link[min-href], script[min-src] 属性都将替换到 link[href], script[src] 并删除掉
-		// 如果 min-href, min-src 的值为空，将删除这个元素
-		"input": "index.html",
-		"output_minify": "dist/index.html",
-		"route": "/"
-	}],
 	"server": {
 		"host": "127.0.0.1",
 		"port": 8080
+	},
+	"development": {
+		"backend": "./ajax",
+		"urlmaps": {
+			"/": "./views/index.html",
+			"/login": "./views/login.html",
+			"/static": "./static/src"
+		},
+		"dynamic_assets": [{
+			"url": "/static/js/all.js",
+			"input": ["src/js/file1.js", "src/js/file2.js", "src/js/file3.js"],
+			"output": "src/js/all.js",
+			"output_minify": "dist/js/all-min.js"
+		}]
+	},
+	"production": {
+		"backend": "10.2.81.136:8081",
+		"urlmaps": {
+			"/": "./views/index.html",
+			"/static": "./static/dist"
+		}
 	}
 }

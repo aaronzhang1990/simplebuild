@@ -1,6 +1,8 @@
 var path = require('path');
 var fs = require('fs');
+var colors = require('colors');
 
+var config = require('./config_wrapper');
 
 exports.execute = execute;
 
@@ -17,9 +19,29 @@ function execute(task, options) {
         m = require('./lib/' + type.substring(1));
         return m.execute(task, options);
     } catch(e) {
-		console.error(e);
-		console.log(e.stack);
-        return Promise.reject("unrecognize output type -> " + type);
+        return Promise.reject(e);
     }
 }
 
+function build() {
+	var writer = process.stdout;
+	var assets = config.development.dynamic_assets;
+	async.eachOfSeries(assets, function(asset, i, callback){
+		var label = asset.name ? asset.name : ('[ ' + i + ' ]');
+		writer.write("run task: " + label);
+		if(task.canMinify()) {
+			var start = Date.now();
+			execute(asset).then(function(){
+				var timestr = Date.now() - start + 'ms';
+				writer.write(timestr.cyan + ' 成功\n');
+				callback(null);
+			}, callback);
+		} else {
+			writer.write("  can't minify, ignore ...");
+			callback(null);
+		}
+	}, function(error){
+		console.error(error.message);
+		console.error(error.stack);
+	});
+}

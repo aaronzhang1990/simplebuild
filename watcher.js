@@ -10,6 +10,10 @@ var project_config;
 
 module.exports = watch;
 
+function watchAsset(asset) {
+	watcher.add(asset.input);
+}
+
 function watch(config) {
 	if(watcher) {
 		stop_watcher();

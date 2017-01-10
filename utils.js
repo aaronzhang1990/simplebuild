@@ -18,7 +18,7 @@ exports.load_config = load_config;
 exports.make_response = make_response;
 exports.isfile = isfile;
 exports.isdir = isdir;
-
+exports.copyAttributes = copyAttributes;
 
 function resolve_path(input) {
 	if(!input) { return input; }
@@ -183,4 +183,12 @@ function check_task(task) {
 	task.input = input;
 	task.output = resolve_path(task.output);
 	task.output_minify = resolve_path(task.output_minify);
+}
+
+function copyAttributes(attrs, dest, src) {
+	var i, len, k;
+	for(i=0,len=attrs.length;i<len;i++) {
+		k = attrs[i];
+		dest[k] = src[k];
+	}
 }

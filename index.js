@@ -5,6 +5,7 @@ var colors = require('colors');
 var debug = require('debug')('sb:main');
 
 var utils = require('./utils');
+var config = require('./config_wrapper');
 
 module.exports = main;
 
@@ -17,41 +18,31 @@ if(require.main === module) {
 // sb build [cfgfile]
 // sb gen
 function main() {
-    var cmd = process.argv[2], mode, cfgfile, tmp;
-	mode = process.argv[3] || '';
-	cfgfile = process.argv[4] || '';
-	if(mode.indexOf('--') === 0) {
-		mode = mode.substring(2);
-	} else if(cfgfile.indexOf('--') === 0) {
-		tmp = mode;
-		mode = cfgfile.substring(2);
-		cfgfile = tmp;
-	}
+    var cmd = process.argv[2], cfgfile;
 	if(cmd === "gen") {
-		if(!cfgfile) {
-			generate();
-		}
-		return;
-	}
-	cfgfile = cfgfile || './build.json';
-    try {
-        cfgfile = path.resolve(cfgfile);
-        var stat = fs.lstatSync(cfgfile);
-        if(stat.isDirectory()) {
-            cfgfile = path.join(cfgfile, "build.json");
+        generate();
+	} else if(cmd === "build") {
+        config.initConfig(process.argv[3]);
+        build();
+    } else if(cmd === "server") {
+        var options = {};
+        process.argv.slice(3).forEach(function(arg){
+            if(arg.indexOf('--') === 0) {
+                arg = arg.substring(2);
+                if(arg.length > 0) {
+                    options[arg] = true;
+                }
+            } else {
+                cfgfile = arg;
+            }
+        });
+        if(options.production === true || process.env.NODE_ENV === "production") {
+            process.env.NODE_ENV = "production";
+        } else {
+            process.env.NODE_ENV = "development";
         }
-        stat = fs.lstatSync(cfgfile);
-        if(!stat.isFile()) {
-            throw new Error("");
-        }
-    } catch(e) {
-        console.error("找不到 " + cfgfile);
-        return;
-    }
-    if(cmd === "server") {
-        start_server(cfgfile, mode);
-    } else if(cmd === "build") {
-        build(cfgfile);
+        config.initConfig(cfgfile);
+        start_server();
     } else {
         printusage();
     }
@@ -61,17 +52,8 @@ function main() {
 /**
  * 启动开发服务器
  */
-function start_server(configfile, mode) {
-	var config;
-	debug('use build file: ' + configfile);
-	if(mode !== "production" && mode !== "development") {
-		mode = "development";
-	}
-	process.env['NODE_ENV'] = mode;
-	process.chdir(path.dirname(configfile));
-    config = utils.load_config(configfile);
-	config.configfile = configfile;
-    require('./server').start(config);
+function start_server() {
+    require('./server').start();
 }
 
 /**
@@ -79,12 +61,10 @@ function start_server(configfile, mode) {
  * @param configfile {String} 配置文件
  * @return Promise 返回构建的 Promise
  */
-function build(configfile) {
-	var config = utils.load_config(configfile);
+function build() {
 	var tasks = config.tasks;
     var builder = require('./builder');
     var task_index = 0, task_count = tasks.length;
-	process.chdir(path.dirname(configfile));
     run_tasks();
     function run_tasks() {
         if(task_index >= task_count) { return; }
