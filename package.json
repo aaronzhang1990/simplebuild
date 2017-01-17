@@ -1,5 +1,5 @@
 {
-  "name": "simplebuild",
+  "name": "oe-simplebuild",
   "version": "1.0.0",
   "description": "简单的前端集成构建工具。",
   "main": "index.js",
@@ -13,7 +13,7 @@
     "type": "git",
     "url": "git@git.coding.net:mystorp/buildtool.git"
   },
-  "author": "593233820@qq.com",
+  "author": "mystorp@gmail.com",
   "license": "ISC",
   "dependencies": {
     "async": "^2.1.4",

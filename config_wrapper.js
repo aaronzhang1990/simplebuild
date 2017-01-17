@@ -10,7 +10,6 @@ function initConfig (file){
     var buildfile = path.resolve(file || process.env.BUILDFILE || './build.json');
     var mode = process.env.NODE_ENV;
     var data;
-	debug('loading ' + buildfile);
     try {
         data = JSON.parse(utils.readfile(buildfile));
     } catch(e) {
@@ -18,10 +17,16 @@ function initConfig (file){
     }
     exports.server = data.server;
     exports.backend = data.backend;
-    Object.assign(exports, data[mode]);
+	if(!mode) {
+		mode = process.env.NODE_ENV = "development";
+	}
+    Object.assign(exports, data[mode === 'build' ? 'development' : mode]);
     process.chdir(path.dirname(file));
-	if(mode === "development" && exports.dynamic_assets) {
+	if(mode === "development") {
+		debug("init watcher ...");
 		initWatcher(buildfile);
+	}
+	if(exports.dynamic_assets) {
 		exports.dynamic_assets = DynamicAsset.fromConfig(exports.dynamic_assets);
 	}
 }
@@ -75,7 +80,7 @@ function DynamicAsset(options) {
 		throw new Error("找不到 input");
 	}
 	if(!output) {
-		console.log("warning: 没有 output");
+		debug("warning: 没有 output");
 	}
 	if(!Array.isArray(input)) {
 		input = [input];
@@ -113,10 +118,12 @@ function DynamicAsset(options) {
 		// 当前没有要复制的属性
 	}
 	utils.copyAttributes(['url'], this, options);
-	DynamicAsset.watch(this.input, function(){
+	if(process.env.NODE_ENV === "development") {
+		DynamicAsset.watch(this.input, function(){
+			this.buildCache();
+		}.bind(this));
 		this.buildCache();
-	}.bind(this));
-	this.buildCache();
+	}
 }
 
 DynamicAsset.prototype.getType = function(){
@@ -159,7 +166,6 @@ DynamicAsset.prototype.minify = function(){};
 DynamicAsset.prototype.onRequest = function(req, resp){
 	var pathname = req.path, time;
 	if(pathname === this.url) {
-		debug("request hited!!!");
 		time = req.get('if-modified-since') || -1;
 		// 说明：如果浏览器端禁用了缓存，将看不到缓存的效果
 		if(this._lastCacheTime > time) {
@@ -169,13 +175,12 @@ DynamicAsset.prototype.onRequest = function(req, resp){
 		} else {
 			resp.status(304).end();
 		}
-		debug("finish request!!!");
 		return false;
 	}
 };
 
 DynamicAsset.prototype.onFileChange = function(file){
-	console.log("file changed:", file);
+	debug("file changed:", file);
 	this.buildCache();
 };
 

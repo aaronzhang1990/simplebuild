@@ -26,7 +26,6 @@ module.exports = function(options){
     }
     return function(req, resp, next){
         var pathname = req.path, dir, file, last_slash, hit;
-		debug("new request: " + pathname);
         if(pathname.indexOf(prefix) !== 0) {
             return next();
         }
@@ -43,7 +42,6 @@ module.exports = function(options){
         hit = false;
         files.forEach(function(f){
             var full_path = dir + '/' + f;
-			debug("test json file: " + full_path);
             if(!hit && fs.existsSync(full_path)) {
                 utils.make_response(resp, full_path);
                 hit = true;

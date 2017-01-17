@@ -1,10 +1,12 @@
 var path = require('path');
 var fs = require('fs');
+var async = require('async');
 var colors = require('colors');
+var debug = require('debug')('sb:builder');
 
 var config = require('./config_wrapper');
 
-exports.execute = execute;
+exports.build = build;
 
 /**
  * 根据配置执行一条任务，先根据 input 生成 output
@@ -25,11 +27,12 @@ function execute(task, options) {
 
 function build() {
 	var writer = process.stdout;
-	var assets = config.development.dynamic_assets;
+	var assets = config.dynamic_assets;
+	debug('total task: ' + assets.length);
 	async.eachOfSeries(assets, function(asset, i, callback){
 		var label = asset.name ? asset.name : ('[ ' + i + ' ]');
-		writer.write("run task: " + label);
-		if(task.canMinify()) {
+		writer.write("run task: " + label + ' ');
+		if(asset.canMinify()) {
 			var start = Date.now();
 			execute(asset).then(function(){
 				var timestr = Date.now() - start + 'ms';
@@ -41,7 +44,9 @@ function build() {
 			callback(null);
 		}
 	}, function(error){
-		console.error(error.message);
-		console.error(error.stack);
+		if(error) {
+			console.error(error.message);
+			console.error(error.stack);
+		}
 	});
 }
