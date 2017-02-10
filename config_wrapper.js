@@ -39,6 +39,7 @@ function initWatcher(buildfile){
 	watcher.on('change', function(file){
 		var stack = DynamicAsset._stack;
 		var data;
+		debug('file changed: ' + file);
 		if(file === buildfile) {
 			try {
 				data = JSON.parse(utils.readfile(buildfile));
@@ -48,19 +49,20 @@ function initWatcher(buildfile){
 			DynamicAsset.reset();
 			// 仅仅调整此字段
 			exports.dynamic_assets = DynamicAsset.fromConfig(data.development.dynamic_assets);
-			return;
-		}
-		stack.forEach(function(arr){
-			var input = arr[0], fn = arr[1];
-			if(input.indexOf(file) !== -1) {
-				try {
-					fn();
-				} catch(e) {
-					console.error("未处理的错误：", e.message);
-					console.error(e.stack);
+		} else {
+			stack.forEach(function(arr){
+				var input = arr[0], fn = arr[1];
+				var deps = input.dependencies || [];
+				if(input.indexOf(file) !== -1 || deps.indexOf(file) !== -1) {
+					try {
+						fn();
+					} catch(e) {
+						console.error("未处理的错误：", e.message);
+						console.error(e.stack);
+					}
 				}
-			}
-		});
+			});
+		}
 	});
 	// 暂时不处理文件被删除
 	watcher.on('unlink', function(){});
@@ -118,7 +120,7 @@ function DynamicAsset(options) {
 		// 当前没有要复制的属性
 	}
 	utils.copyAttributes(['url'], this, options);
-	if(process.env.NODE_ENV === "development") {
+	if(process.env.NODE_ENV === "development" && !!this.output) {
 		DynamicAsset.watch(this.input, function(){
 			this.buildCache();
 		}.bind(this));
@@ -154,6 +156,11 @@ DynamicAsset.prototype.buildCache = function(){
 	lib.buildInMemory(this).then(function(cache){
 		asset._lastCache = cache.code;
 		asset._lastCacheTime = Date.now();
+		if(cache.dependencies) {
+			debug('find dependencies:' + cache.dependencies);
+			asset.input.dependencies = cache.dependencies;
+			DynamicAsset.justWatch(cache.dependencies);
+		}
 		debug("build cache success!!!");
 	}).catch(function(e){
 		console.error("build cache error:", e.message);
@@ -201,6 +208,33 @@ DynamicAsset.watch = function(input, callback){
 	var watcher = DynamicAsset._watcher;
 	watcher.add(input);
 	stack.push([input, callback]);
+};
+
+DynamicAsset.justWatch = function(files){
+	var watcher = DynamicAsset._watcher;
+	var watched = watcher.getWatched();
+	var dirs = Object.keys(watched);
+	var i, j, ilen, jlen, cf, cd, added, arr, file;
+	for(i=0,ilen=files.length;i<ilen;i++) {
+		cf = files[i];
+		added = false;
+		for(j=0,jlen=dirs.length;j<jlen;j++) {
+			cd = dirs[j];
+			if(cf.indexOf(cd) === 0) {
+				arr = watched[cd];
+				file = cf.replace(cd + '/', '');
+				if(arr.indexOf(file) > -1) {
+					added = true;
+					debug('file has been watched: ' + cf);
+					break;
+				}
+			}
+		}
+		if(!added) {
+			debug('watch dependency file: ' + cf);
+			watcher.add(cf);
+		}
+	}
 };
 
 DynamicAsset.reset = function(){
