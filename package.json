@@ -1,6 +1,6 @@
 {
   "name": "oe-simplebuild",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "简单的前端集成构建工具。",
   "main": "index.js",
   "bin": {
@@ -11,10 +11,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@git.coding.net:mystorp/buildtool.git"
+    "url": "https://github.com/mystorp/simplebuild.git"
   },
   "author": "mystorp@gmail.com",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "async": "^2.1.4",
     "babel-core": "^6.18.2",
